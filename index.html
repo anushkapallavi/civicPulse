@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicPulse — City Issue Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --border: #2a2d35;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --accent3: #4ecdc4;
+    --text: #f0f0eb;
+    --muted: #6b6f7a;
+    --red: #ff4444;
+    --yellow: #ffb800;
+    --green: #44ff88;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NOISE TEXTURE */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(14,15,17,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    animation: pulse-logo 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-logo {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,255,71,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(232,255,71,0); }
+  }
+
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  nav { display: flex; gap: 8px; align-items: center; }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .nav-btn:hover, .nav-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  .btn-primary:hover {
+    background: transparent;
+    color: var(--accent);
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* HERO STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.2s;
+  }
+
+  .stat-card:hover { background: #1c1f26; }
+
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.accent { color: var(--accent); }
+
+  .stat-delta {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .stat-delta .up { color: var(--green); }
+  .stat-delta .down { color: var(--red); }
+
+  /* CONTENT GRID */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+  }
+
+  /* SECTION HEADERS */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 20px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* REPORT CARDS */
+  .reports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .report-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: start;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .report-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .report-card.critical::before { background: var(--red); }
+  .report-card.high::before { background: var(--accent2); }
+  .report-card.medium::before { background: var(--yellow); }
+  .report-card.low::before { background: var(--accent3); }
+
+  .report-card:hover {
+    border-color: rgba(232,255,71,0.3);
+    transform: translateX(2px);
+    background: #1c1f26;
+  }
+
+  .report-card.selected {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.05);
+  }
+
+  .category-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .cat-road { background: rgba(255,107,53,0.15); }
+  .cat-sanitation { background: rgba(68,255,136,0.15); }
+  .cat-utility { background: rgba(232,255,71,0.15); }
+  .cat-safety { background: rgba(255,68,68,0.15); }
+  .cat-water { background: rgba(78,205,196,0.15); }
+  .cat-other { background: rgba(107,111,122,0.15); }
+
+  .report-info { flex: 1; min-width: 0; }
+
+  .report-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .report-meta {
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .report-meta .location { color: var(--accent3); }
+
+  .report-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .status-badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  .status-open { background: rgba(255,68,68,0.2); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+  .status-progress { background: rgba(255,184,0,0.2); color: var(--yellow); border: 1px solid rgba(255,184,0,0.3); }
+  .status-resolved { background: rgba(68,255,136,0.2); color: var(--green); border: 1px solid rgba(68,255,136,0.3); }
+  .status-flagged { background: rgba(107,111,122,0.2); color: var(--muted); border: 1px solid rgba(107,111,122,0.3); }
+
+  .priority-badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  .pri-critical { background: rgba(255,68,68,0.1); color: var(--red); }
+  .pri-high { background: rgba(255,107,53,0.1); color: var(--accent2); }
+  .pri-medium { background: rgba(255,184,0,0.1); color: var(--yellow); }
+  .pri-low { background: rgba(78,205,196,0.1); color: var(--accent3); }
+
+  .upvote-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .upvote-btn:hover, .upvote-btn.voted {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  /* SUBMIT FORM */
+  .form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(232,255,71,0.05);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-header-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .panel-body { padding: 20px; }
+
+  .form-group { margin-bottom: 14px; }
+
+  .form-label {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .form-select option { background: var(--bg); }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .cat-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 4px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cat-btn:hover, .cat-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,255,71,0.05);
+  }
+
+  .cat-btn-icon { font-size: 16px; }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .submit-btn:hover {
+    background: var(--text);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(232,255,71,0.3);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  /* AI TAG */
+  .ai-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(232,255,71,0.1);
+    border: 1px solid rgba(232,255,71,0.2);
+    color: var(--accent);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .ai-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    animation: fadeUp 0.5s 0.05s ease both;
+  }
+
+  .filter-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .filter-chip:hover, .filter-chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,255,71,0.05);
+  }
+
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    outline: none;
+    margin-left: auto;
+    width: 180px;
+    transition: all 0.2s;
+  }
+
+  .search-input:focus { border-color: var(--accent); width: 220px; }
+
+  /* DETAIL MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body { padding: 24px; }
+
+  .timeline {
+    position: relative;
+    padding-left: 24px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+    font-size: 12px;
+  }
+
+  .timeline-item:last-child { padding-bottom: 0; }
+
+  .timeline-dot {
+    position: absolute;
+    left: -21px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    border: 2px solid var(--bg);
+  }
+
+  .timeline-dot.active { background: var(--accent); }
+  .timeline-dot.done { background: var(--green); }
+
+  .timeline-label { font-weight: 700; margin-bottom: 2px; }
+  .timeline-desc { color: var(--muted); }
+  .timeline-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .comm-thread { margin-top: 16px; }
+
+  .comm-msg {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .comm-msg.authority {
+    border-color: rgba(232,255,71,0.2);
+    background: rgba(232,255,71,0.03);
+  }
+
+  .comm-msg-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+
+  .comm-author { color: var(--accent); font-weight: 700; }
+  .comm-author.citizen { color: var(--accent3); }
+  .comm-date { color: var(--muted); }
+  .comm-text { color: var(--muted); line-height: 1.5; }
+
+  .comm-input-area {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .comm-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .comm-input:focus { border-color: var(--accent3); }
+
+  .comm-send {
+    background: var(--accent3);
+    border: none;
+    color: var(--bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 6px;
+    z-index: 300;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    main { padding: 16px; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* PAGE TRANSITIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">⚡</div>
+    <div class="logo-text">Civic<span>Pulse</span></div>
+  </div>
+  <nav>
+    <button class="nav-btn active" onclick="switchPage('dashboard')">Dashboard</button>
+    <button class="nav-btn" onclick="switchPage('report')">Report Issue</button>
+    <button class="nav-btn" onclick="switchPage('analytics')">Analytics</button>
+    <button class="nav-btn btn-primary" onclick="document.getElementById('issue-title').focus(); document.querySelector('.form-panel').scrollIntoView({behavior:'smooth'})">+ New Report</button>
+  </nav>
+</header>
+
+<main>
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Open Issues</div>
+      <div class="stat-value red" id="stat-open">0</div>
+      <div class="stat-delta">No open issues yet</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">In Progress</div>
+      <div class="stat-value yellow" id="stat-progress">0</div>
+      <div class="stat-delta">None assigned yet</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Resolved (30d)</div>
+      <div class="stat-value green" id="stat-resolved">0</div>
+      <div class="stat-delta">Submit reports to get started</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Citizen Reports</div>
+      <div class="stat-value accent" id="stat-total">0</div>
+      <div class="stat-delta">Be the first to report!</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content-grid">
+    <!-- LEFT: ISSUE FEED -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">Live Issue Feed</div>
+        <div class="ai-tag"><div class="ai-dot"></div> AI Prioritized</div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-chip active" onclick="filterReports('all', this)">All</button>
+        <button class="filter-chip" onclick="filterReports('critical', this)">🔴 Critical</button>
+        <button class="filter-chip" onclick="filterReports('road', this)">🛣 Roads</button>
+        <button class="filter-chip" onclick="filterReports('sanitation', this)">🗑 Sanitation</button>
+        <button class="filter-chip" onclick="filterReports('utility', this)">⚡ Utilities</button>
+        <button class="filter-chip" onclick="filterReports('water', this)">💧 Water</button>
+        <input class="search-input" placeholder="Search issues..." oninput="searchReports(this.value)">
+      </div>
+
+      <div class="reports-list" id="reports-list"></div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- SUBMIT FORM -->
+      <div class="form-panel">
+        <div class="panel-header">
+          <span>📢</span>
+          <div class="panel-header-title">Report an Issue</div>
+          <div id="verify-badge" style="margin-left:auto;display:none" class="ai-tag"></div>
+        </div>
+        <div class="panel-body">
+
+          <!-- STEP 1: CHOOSE MODE -->
+          <div id="step-choose">
+            <div style="text-align:center;padding:8px 0 14px">
+              <div style="font-size:26px;margin-bottom:8px">📋</div>
+              <div style="font-family:'Fraunces',serif;font-size:15px;margin-bottom:6px">How would you like to report?</div>
+              <div style="font-size:10px;color:var(--muted);line-height:1.7">Both paths are valid. Your choice affects how your report is processed.</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+              <button onclick="chooseMode('verified')" style="background:rgba(232,255,71,0.05);border:1px solid rgba(232,255,71,0.25);border-radius:6px;padding:14px 10px;cursor:pointer;text-align:center;transition:all 0.2s" onmouseover="this.style.background='rgba(232,255,71,0.1)'" onmouseout="this.style.background='rgba(232,255,71,0.05)'">
+                <div style="font-size:22px;margin-bottom:6px">🔐</div>
+                <div style="font-family:'Fraunces',serif;font-size:12px;color:var(--accent);margin-bottom:4px">Verified</div>
+                <div style="font-size:9px;color:var(--muted);line-height:1.5">OTP via phone or email. Higher trust, faster action.</div>
+              </button>
+              <button onclick="chooseMode('anonymous')" style="background:rgba(107,111,122,0.08);border:1px solid rgba(107,111,122,0.25);border-radius:6px;padding:14px 10px;cursor:pointer;text-align:center;transition:all 0.2s" onmouseover="this.style.background='rgba(107,111,122,0.15)'" onmouseout="this.style.background='rgba(107,111,122,0.08)'">
+                <div style="font-size:22px;margin-bottom:6px">🕵️</div>
+                <div style="font-family:'Fraunces',serif;font-size:12px;color:var(--text);margin-bottom:4px">Anonymous</div>
+                <div style="font-size:9px;color:var(--muted);line-height:1.5">No personal info needed. Stricter review before publishing.</div>
+              </button>
+            </div>
+            <div style="font-size:9px;color:var(--muted);text-align:center;line-height:1.7;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--bg)">
+              🔒 No personal data is ever shown publicly. Verified contact is only used if authorities need to follow up on a critical issue.
+            </div>
+          </div>
+
+          <!-- STEP 1a: VERIFY IDENTITY (OTP) -->
+          <div id="step-verify" style="display:none">
+            <button onclick="backToChoose()" style="background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;margin-bottom:12px;padding:0">← Back</button>
+            <div style="text-align:center;padding:4px 0 14px">
+              <div style="font-size:24px;margin-bottom:6px">🔐</div>
+              <div style="font-family:'Fraunces',serif;font-size:14px;margin-bottom:4px">Verify your identity</div>
+              <div style="font-size:10px;color:var(--muted);line-height:1.6">Your contact is <strong style="color:var(--text)">never shown publicly</strong>. Reports display as "Verified Citizen".</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile Number or Email</label>
+              <input class="form-input" id="verify-contact" placeholder="+91 98765 43210 or you@email.com">
+            </div>
+            <div id="otp-row" style="display:none">
+              <div class="form-group">
+                <label class="form-label">Enter OTP sent to your contact</label>
+                <div style="display:flex;gap:8px">
+                  <input class="form-input" id="otp-input" placeholder="6-digit code" maxlength="6" style="letter-spacing:6px;font-size:16px;text-align:center">
+                  <button style="background:none;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;padding:0 10px;border-radius:4px;cursor:pointer;white-space:nowrap" onclick="resendOtp()">Resend</button>
+                </div>
+                <div style="font-size:9px;color:var(--muted);margin-top:6px" id="otp-hint"></div>
+              </div>
+              <button class="submit-btn" onclick="verifyOtp()">Verify & Continue →</button>
+            </div>
+            <div id="send-otp-btn-wrap">
+              <button class="submit-btn" onclick="sendOtp()">Send OTP →</button>
+            </div>
+          </div>
+
+          <!-- STEP 2: REPORT FORM (shown after choose) -->
+          <div id="step-form" style="display:none">
+            <div id="mode-banner" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:4px;margin-bottom:14px;font-size:10px;line-height:1.6"></div>
+
+            <!-- CATEGORY -->
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <div class="category-grid" id="cat-grid">
+                <button class="cat-btn active" onclick="selectCat(this, 'road')"><div class="cat-btn-icon">🛣</div>Roads</button>
+                <button class="cat-btn" onclick="selectCat(this, 'sanitation')"><div class="cat-btn-icon">🗑</div>Waste</button>
+                <button class="cat-btn" onclick="selectCat(this, 'utility')"><div class="cat-btn-icon">⚡</div>Utilities</button>
+                <button class="cat-btn" onclick="selectCat(this, 'water')"><div class="cat-btn-icon">💧</div>Water</button>
+                <button class="cat-btn" onclick="selectCat(this, 'safety')"><div class="cat-btn-icon">🚨</div>Safety</button>
+                <button class="cat-btn" onclick="selectCat(this, 'other')"><div class="cat-btn-icon">📌</div>Other</button>
+              </div>
+            </div>
+
+            <!-- GPS VERIFICATION -->
+            <div class="form-group">
+              <label class="form-label">Location Verification <span style="color:var(--red)">*</span></label>
+              <div id="gps-box" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px">You must be physically at or near the issue location to report it.</div>
+                <button class="submit-btn" style="padding:8px 16px;font-size:10px;width:auto;display:inline-block" onclick="captureGPS()">📍 Capture My GPS Location</button>
+              </div>
+              <div id="gps-result" style="display:none;margin-top:8px;padding:10px 12px;border-radius:4px;font-size:10px;line-height:1.6"></div>
+            </div>
+
+            <!-- LOCATION TEXT (auto-filled from GPS, editable) -->
+            <div class="form-group">
+              <label class="form-label">Location Description</label>
+              <input class="form-input" id="issue-location" placeholder="Auto-filled from GPS or enter manually">
+            </div>
+
+            <!-- TITLE -->
+            <div class="form-group">
+              <label class="form-label">Issue Title</label>
+              <input class="form-input" id="issue-title" placeholder="e.g. Large pothole on Main St">
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="issue-desc" placeholder="Describe the issue in detail..."></textarea>
+            </div>
+
+            <!-- PHOTO UPLOAD (mandatory for visual categories) -->
+            <div class="form-group" id="photo-group" style="display:none">
+              <label class="form-label">Photo Evidence <span style="color:var(--red)">* Required for this category</span></label>
+              <div id="photo-drop" onclick="document.getElementById('photo-input').click()"
+                style="border:2px dashed var(--border);border-radius:6px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg)"
+                ondragover="event.preventDefault()"
+                ondragleave=""
+                ondrop="">
+                <div style="font-size:24px;margin-bottom:6px">📸</div>
+                <div style="font-size:11px;color:var(--text)">Take a photo right now</div>
+                <div style="font-size:9px;color:var(--muted);margin-top:4px">Opens your camera — photo must be taken on the spot</div>
+                <div style="font-size:9px;color:var(--red);margin-top:4px">⚠ Gallery & file uploads are not accepted</div>
+              </div>
+              <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(event)">
+              <div id="photo-preview" style="display:none;margin-top:10px;position:relative">
+                <img id="preview-img" style="width:100%;border-radius:6px;border:1px solid var(--border);max-height:160px;object-fit:cover">
+                <div id="photo-meta" style="font-size:9px;color:var(--muted);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap"></div>
+                <button onclick="clearPhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:none;color:var(--text);border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1">✕</button>
+              </div>
+              <div id="photo-warning" style="display:none;margin-top:6px;font-size:10px;color:var(--red)"></div>
+            </div>
+
+            <!-- AI PRIORITY NOTE -->
+            <div class="form-group">
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+                <div class="ai-dot"></div>
+                <span style="font-size:10px;color:var(--muted);line-height:1.5">Priority is <span style="color:var(--accent)">automatically assessed by AI</span> based on your description — no manual selection needed.</span>
+              </div>
+            </div>
+
+            <div id="abuse-warning" style="display:none;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.3);border-radius:4px;padding:10px 12px;font-size:10px;color:var(--red);margin-bottom:12px;line-height:1.6"></div>
+            <button class="submit-btn" onclick="submitReport()">Submit Report →</button>
+            <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:10px">⚠️ False reports may result in your account being flagged and restricted.</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- ANALYTICS OVERLAY -->
+<div id="analytics-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:150;overflow-y:auto">
+  <div style="max-width:1000px;margin:0 auto;padding:32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600">Government Performance <span style="color:var(--accent)">Analytics</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Real-time view of civic issue resolution progress</div>
+      </div>
+      <button onclick="closeAnalytics()" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;padding:8px 16px;border-radius:4px;cursor:pointer">✕ Close</button>
+    </div>
+
+    <!-- TOP KPI ROW -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:24px">
+      <div style="background:var(--surface);padding:20px 24px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px">Resolution Rate</div>
+        <div id="a-rate" style="font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--accent)">0%</div>
+        <div id="a-rate-sub" style="font-size:10px;color:var(--muted);margin-top:2px">of all submitted issues</div>
+      </div>
+      <div style="background:var(--surface);padding:20px 24px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px">Total Resolved</div>
+        <div id="a-resolved" style="font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--green)">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">issues closed</div>
+      </div>
+      <div style="background:var(--surface);padding:20px 24px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px">In Progress</div>
+        <div id="a-progress" style="font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--yellow)">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">actively being worked on</div>
+      </div>
+      <div style="background:var(--surface);padding:20px 24px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px">Pending / Open</div>
+        <div id="a-open" style="font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--red)">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">awaiting action</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+
+      <!-- RESOLUTION PROGRESS BAR -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin-bottom:4px">Overall Progress</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:20px">How far along is the government in resolving all reported issues</div>
+        <div style="position:relative;height:28px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border)">
+          <div id="progress-bar-resolved" style="position:absolute;left:0;top:0;bottom:0;background:var(--green);transition:width 0.8s ease;width:0%"></div>
+          <div id="progress-bar-progress" style="position:absolute;top:0;bottom:0;background:var(--yellow);transition:all 0.8s ease;left:0%;width:0%"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--bg);mix-blend-mode:difference" id="progress-bar-label">No reports yet</div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:9px;color:var(--muted)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;background:var(--green);border-radius:2px"></span>Resolved</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;background:var(--yellow);border-radius:2px"></span>In Progress</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;background:var(--border);border-radius:2px"></span>Open / Pending</span>
+        </div>
+      </div>
+
+      <!-- CATEGORY BREAKDOWN DONUT -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin-bottom:4px">Issues by Category</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:16px">Distribution of all submitted reports</div>
+        <div id="category-bars"></div>
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+      <!-- RESOLVED BY CATEGORY -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin-bottom:4px">Resolved by Category</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:16px">Which types of issues the government has successfully closed</div>
+        <div id="resolved-by-cat"></div>
+      </div>
+
+      <!-- ACCOUNTABILITY SCORECARD -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin-bottom:4px">Accountability Scorecard</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:20px">Government responsiveness graded by category</div>
+        <div id="scorecard"></div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div id="modal-title" style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="modal-badges"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px" id="modal-meta"></div>
+      <div style="font-size:13px;line-height:1.7;margin-bottom:20px;color:#c0c0b8" id="modal-desc"></div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px">Resolution Timeline</div>
+        <div class="timeline" id="modal-timeline"></div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px">Citizen — Authority Communication</div>
+        <div class="comm-thread" id="modal-comms"></div>
+        <div class="comm-input-area">
+          <input class="comm-input" id="comm-input" placeholder="Add a public comment...">
+          <button class="comm-send" onclick="sendComment()">Send</button>
+        </div>
+      </div>
+
+      <div id="modal-status-controls" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px">Department Controls</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="updateReportStatus('progress')" style="background:rgba(255,184,0,0.1);border:1px solid rgba(255,184,0,0.3);color:var(--yellow);font-family:'Space Mono',monospace;font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer">Mark In Progress</button>
+          <button onclick="updateReportStatus('resolved')" style="background:rgba(68,255,136,0.1);border:1px solid rgba(68,255,136,0.3);color:var(--green);font-family:'Space Mono',monospace;font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer">✓ Mark Resolved</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Report submitted successfully!</div>
+
+<script>
+const reports = [];
+let nextId = 1;
+
+// --- VERIFICATION STATE ---
+let reportMode = null; // 'verified' | 'anonymous'
+let verifiedUser = null;       // { contact, trustScore, reportCount, anonymous }
+let generatedOtp = null;
+let otpContact = null;
+const abuseLog = {};
+
+function chooseMode(mode) {
+  reportMode = mode;
+  document.getElementById('step-choose').style.display = 'none';
+  if (mode === 'verified') {
+    document.getElementById('step-verify').style.display = 'block';
+  } else {
+    verifiedUser = { contact: null, trustScore: 30, reportCount: 0, anonymous: true };
+    openReportForm('anonymous');
+  }
+}
+
+function backToChoose() {
+  reportMode = null;
+  verifiedUser = null;
+  document.getElementById('step-verify').style.display = 'none';
+  document.getElementById('step-form').style.display = 'none';
+  document.getElementById('step-choose').style.display = 'block';
+  document.getElementById('verify-badge').style.display = 'none';
+  document.getElementById('otp-row').style.display = 'none';
+  document.getElementById('send-otp-btn-wrap').style.display = 'block';
+  document.getElementById('verify-contact').value = '';
+}
+
+function openReportForm(mode) {
+  document.getElementById('step-form').style.display = 'block';
+  const badge = document.getElementById('verify-badge');
+  const banner = document.getElementById('mode-banner');
+  badge.style.display = 'flex';
+
+  if (mode === 'verified') {
+    badge.innerHTML = '<span style="color:var(--green)">✓</span>&nbsp;Verified';
+    banner.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:4px;margin-bottom:14px;font-size:10px;line-height:1.6;background:rgba(68,255,136,0.06);border:1px solid rgba(68,255,136,0.2);color:var(--green)';
+    banner.innerHTML = '✓ Identity verified — your report will be fast-tracked and directly actioned by the relevant department.';
+  } else {
+    badge.innerHTML = '🕵️&nbsp;Anonymous';
+    badge.style.color = 'var(--muted)';
+    banner.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:4px;margin-bottom:14px;font-size:10px;line-height:1.6;background:rgba(255,184,0,0.05);border:1px solid rgba(255,184,0,0.2);color:var(--yellow)';
+    banner.innerHTML = `🕵️ <span><strong style="color:var(--text)">Anonymous mode</strong> — no personal data collected or stored.<br>
+      <span style="color:var(--muted)">Reports require GPS + photo proof and go through manual review before publishing. Critical issues bypass review automatically.</span>
+      <button onclick="chooseMode('verified')" style="display:inline-block;margin-top:6px;background:none;border:1px solid rgba(232,255,71,0.3);color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:3px;cursor:pointer">Switch to Verified instead →</button></span>`;
+    // Anonymous always requires photo
+    document.getElementById('photo-group').style.display = 'block';
+  }
+
+  if (PHOTO_REQUIRED_CATS.has(selectedCat)) {
+    document.getElementById('photo-group').style.display = 'block';
+  }
+}
+
+
+function sendOtp() {
+  const contact = document.getElementById('verify-contact').value.trim();
+  if (!contact) { showToast('⚠️ Enter a phone number or email'); return; }
+  if (abuseLog[contact]?.flagged) {
+    showToast('🚫 This contact has been flagged for abuse');
+    document.getElementById('verify-contact').style.borderColor = 'var(--red)';
+    return;
+  }
+  otpContact = contact;
+  generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+  console.info(`[DEV] OTP for ${contact}: ${generatedOtp}`); // visible in browser console
+  document.getElementById('send-otp-btn-wrap').style.display = 'none';
+  document.getElementById('otp-row').style.display = 'block';
+  document.getElementById('otp-hint').textContent = `OTP sent to ${contact} (check browser console in demo mode)`;
+  showToast('📨 OTP sent! Check your contact.');
+}
+
+function resendOtp() {
+  generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+  console.info(`[DEV] Resent OTP for ${otpContact}: ${generatedOtp}`);
+  document.getElementById('otp-hint').textContent = `New OTP sent to ${otpContact}`;
+  showToast('📨 New OTP sent!');
+}
+
+function verifyOtp() {
+  const entered = document.getElementById('otp-input').value.trim();
+  if (entered !== generatedOtp) {
+    document.getElementById('otp-input').style.borderColor = 'var(--red)';
+    document.getElementById('otp-hint').textContent = '✗ Incorrect OTP. Try again.';
+    document.getElementById('otp-hint').style.color = 'var(--red)';
+    setTimeout(() => document.getElementById('otp-input').style.borderColor = '', 1500);
+    return;
+  }
+  // Verified!
+  const existing = abuseLog[otpContact] || { count: 0, flagged: false };
+  verifiedUser = { contact: otpContact, trustScore: existing.flagged ? 0 : 100, reportCount: existing.count, anonymous: false };
+  document.getElementById('step-verify').style.display = 'none';
+  openReportForm('verified');
+  showToast('✓ Identity verified!');
+}
+
+function checkAbuseRisk(contact, title, desc) {
+  const log = abuseLog[contact] || { count: 0, lastTs: 0 };
+  const now = Date.now();
+  const timeSinceLast = now - log.lastTs;
+  const warnings = [];
+
+  if (log.count >= 5 && timeSinceLast < 3600000) {
+    warnings.push('You have submitted 5+ reports in the last hour. Further reports will be reviewed before publishing.');
+  }
+  if (log.count >= 10) {
+    warnings.push('High report volume from this contact. Reports are now subject to manual verification.');
+    abuseLog[contact] = { ...log, flagged: true };
+  }
+  const spamWords = ['test','fake','prank','hello','asdf','lol','haha','xxx','abc'];
+  if (spamWords.some(w => (title+desc).toLowerCase().includes(w))) {
+    warnings.push('Your report contains keywords that may indicate it is not genuine. False reports are a punishable offence.');
+  }
+  return warnings;
+}
+
+let currentSearch = '';
+let selectedCat = 'road';
+let votedReports = new Set();
+let activeReport = null;
+
+// GPS & PHOTO STATE
+let capturedGPS = null;
+let capturedPhoto = null;
+const PHOTO_REQUIRED_CATS = new Set(['road', 'sanitation', 'water', 'safety']);
+
+// --- GPS ---
+function captureGPS() {
+  const box = document.getElementById('gps-box');
+  const result = document.getElementById('gps-result');
+  box.innerHTML = `<div style="font-size:11px;color:var(--muted);padding:8px 0"><span style="display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:50%;margin-right:6px;animation:blink 1s infinite"></span>Requesting GPS location…</div>`;
+
+  if (!navigator.geolocation) {
+    showGpsError('Geolocation not supported by your browser.');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      const address = await reverseGeocode(lat, lng);
+      capturedGPS = { lat, lng, accuracy: Math.round(accuracy), address };
+      document.getElementById('issue-location').value = address;
+      box.innerHTML = '';
+      result.style.display = 'block';
+      result.style.background = 'rgba(68,255,136,0.06)';
+      result.style.border = '1px solid rgba(68,255,136,0.2)';
+      result.style.color = 'var(--green)';
+      result.innerHTML = `✓ GPS captured — ±${capturedGPS.accuracy}m accuracy<br>
+        <span style="color:var(--muted);font-size:9px">📍 ${address}<br>
+        ${lat.toFixed(5)}, ${lng.toFixed(5)} &nbsp;·&nbsp; Embedded in report metadata</span>
+        <button onclick="captureGPS()" style="display:block;margin-top:8px;background:none;border:1px solid rgba(68,255,136,0.3);color:var(--green);font-family:'Space Mono',monospace;font-size:9px;padding:4px 10px;border-radius:3px;cursor:pointer">🔄 Refresh</button>`;
+    },
+    (err) => {
+      const msgs = {1:'Location permission denied — please enable in browser settings.',2:'Position unavailable.',3:'Request timed out.'};
+      showGpsError(msgs[err.code] || 'Unknown error.');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function showGpsError(msg) {
+  document.getElementById('gps-box').innerHTML = `
+    <div style="font-size:11px;color:var(--red);margin-bottom:8px">⚠ ${msg}</div>
+    <button class="submit-btn" style="padding:8px 16px;font-size:10px;width:auto;display:inline-block" onclick="captureGPS()">📍 Try Again</button>`;
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await res.json();
+    return data.display_name?.split(',').slice(0,3).join(', ').trim() || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch { return `${lat.toFixed(5)}, ${lng.toFixed(5)}`; }
+}
+
+// --- PHOTO ---
+function handlePhotoUpload(e) {
+  const file = e.target.files[0];
+  if (file) processPhoto(file);
+}
+
+function processPhoto(file) {
+  const warn = document.getElementById('photo-warning');
+  if (!file.type.startsWith('image/')) { warn.style.display='block'; warn.textContent='⚠ Please take a photo using your camera.'; return; }
+  if (file.size > 10*1024*1024) { warn.style.display='block'; warn.textContent='⚠ Image must be under 10MB.'; return; }
+
+  // Recency check — photo must have been taken within the last 2 minutes
+  const fileAge = Date.now() - file.lastModified;
+  if (fileAge > 2 * 60 * 1000) {
+    warn.style.display = 'block';
+    warn.innerHTML = '⚠ This photo was not taken just now. You must take a new photo on the spot.<br><span style="color:var(--muted)">Gallery and saved images are not accepted.</span>';
+    document.getElementById('photo-input').value = '';
+    return;
+  }
+
+  warn.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    const now = new Date();
+    capturedPhoto = { dataUrl, filename: file.name, sizeKB: Math.round(file.size/1024), timestamp: now.toISOString(), gpsMatch: !!capturedGPS };
+    document.getElementById('preview-img').src = dataUrl;
+    document.getElementById('photo-drop').style.display = 'none';
+    document.getElementById('photo-preview').style.display = 'block';
+    document.getElementById('photo-meta').innerHTML = `
+      <span>📸 Taken just now</span>
+      <span>💾 ${capturedPhoto.sizeKB} KB</span>
+      <span>🕐 ${now.toLocaleTimeString()}</span>
+      ${capturedPhoto.gpsMatch ? '<span style="color:var(--green)">✓ GPS matched</span>' : '<span style="color:var(--yellow)">⚠ GPS unverified</span>'}`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+  capturedPhoto = null;
+  document.getElementById('photo-input').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-drop').style.display = 'block';
+  document.getElementById('photo-warning').style.display = 'none';
+}
+
+let currentFilter = 'all';
+
+function renderReports() {
+  const list = document.getElementById('reports-list');
+  let filtered = reports.filter(r => {
+    const matchFilter = currentFilter === 'all' || r.category === currentFilter || 
+      (currentFilter === 'critical' && r.priority === 'critical');
+    const matchSearch = !currentSearch || 
+      r.title.toLowerCase().includes(currentSearch) || 
+      r.location.toLowerCase().includes(currentSearch);
+    return matchFilter && matchSearch;
+  });
+
+  list.innerHTML = filtered.length ? filtered.map((r, i) => `
+    <div class="report-card ${r.priority}" onclick="openModal(reports.find(x=>x.id==='${r.id}'))"
+      style="animation: fadeUp 0.4s ${i*0.05}s ease both">
+      <div class="category-icon ${r.catClass}">${r.catIcon}</div>
+      <div class="report-info">
+        <div class="report-title">#${r.id} — ${r.title}</div>
+        <div class="report-meta">
+          <span class="location">📍 ${r.location}</span>
+          <span>🕐 ${r.time}</span>
+          <span>${r.anonymous ? '🕵️ <span style="color:var(--muted)">Anonymous</span>' : r.verified ? '✓ <span style="color:var(--green)">Verified</span>' : '👤 ' + r.reporter}</span>
+        </div>
+      </div>
+      <div class="report-right">
+        <span class="status-badge status-${r.status}">${r.status === 'progress' ? 'In Progress' : r.status === 'open' ? 'Open' : r.status === 'flagged' ? '🔍 Under Review' : 'Resolved'}</span>
+        <span class="priority-badge pri-${r.priority}">${r.priority}</span>
+        <button class="upvote-btn ${votedReports.has(r.id) ? 'voted' : ''}" 
+          onclick="event.stopPropagation(); toggleVote('${r.id}', this)">
+          ▲ <span class="vote-count-${r.id}">${r.votes + (votedReports.has(r.id) ? 1 : 0)}</span>
+        </button>
+      </div>
+    </div>
+  `).join('') : `<div style="text-align:center;padding:48px 24px;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;line-height:2">
+    <div style="font-size:32px;margin-bottom:12px">📭</div>
+    <div style="color:var(--text);font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px">No issues yet</div>
+    Be the first to report a civic issue in your area using the form →
+  </div>`;
+}
+
+function filterReports(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderReports();
+}
+
+function searchReports(val) {
+  currentSearch = val.toLowerCase();
+  renderReports();
+}
+
+function toggleVote(id, btn) {
+  if (votedReports.has(id)) {
+    votedReports.delete(id);
+    btn.classList.remove('voted');
+  } else {
+    votedReports.add(id);
+    btn.classList.add('voted');
+  }
+  renderReports();
+}
+
+function selectCat(btn, cat) {
+  selectedCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Show/hide photo requirement
+  const photoGroup = document.getElementById('photo-group');
+  if (photoGroup) {
+    if (PHOTO_REQUIRED_CATS.has(cat) || (verifiedUser && verifiedUser.anonymous)) {
+      photoGroup.style.display = 'block';
+    } else {
+      photoGroup.style.display = 'none';
+      clearPhoto();
+    }
+  }
+}
+
+function openModal(report) {
+  if (!report) return;
+  activeReport = report;
+  // Clear any previously injected photo block
+  const oldPhoto = document.getElementById('modal-photo-block');
+  if (oldPhoto) oldPhoto.remove();
+  document.getElementById('modal-title').textContent = `#${report.id} — ${report.title}`;
+  document.getElementById('modal-badges').innerHTML = `
+    <span class="status-badge status-${report.status}">${report.status === 'progress' ? 'In Progress' : report.status === 'open' ? 'Open' : report.status === 'flagged' ? '🔍 Under Review' : 'Resolved'}</span>
+    <span class="priority-badge pri-${report.priority}" style="padding:3px 8px">${report.priority.toUpperCase()} PRIORITY</span>
+    <span class="ai-tag"><div class="ai-dot"></div> AI Classified</span>
+  `;
+  document.getElementById('modal-meta').innerHTML = `
+    📍 ${report.location} &nbsp;·&nbsp; 🕐 ${report.time} &nbsp;·&nbsp; 
+    ${report.anonymous ? '🕵️ <span style="color:var(--muted)">Anonymous Citizen</span>' : report.verified ? '✓ <span style="color:var(--green)">Verified Citizen</span>' : '👤 ' + report.reporter} &nbsp;·&nbsp; 
+    ▲ ${report.votes} upvotes
+    ${report.gps ? `<br><span style="color:var(--muted);font-size:9px">🛰 GPS: ${report.gps.lat?.toFixed(5)}, ${report.gps.lng?.toFixed(5)} &nbsp;·&nbsp; ±${report.gps.accuracy}m accuracy</span>` : ''}
+  `;
+  document.getElementById('modal-desc').textContent = report.description;
+
+  // Photo evidence
+  const photoHtml = report.photo ? `
+    <div id="modal-photo-block" style="margin-bottom:20px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px">Photo Evidence</div>
+      <img src="${report.photo.dataUrl}" style="width:100%;border-radius:6px;border:1px solid var(--border);max-height:220px;object-fit:cover">
+      <div style="font-size:9px;color:var(--muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
+        <span>📄 ${report.photo.filename}</span>
+        <span>💾 ${report.photo.sizeKB} KB</span>
+        <span>🕐 ${new Date(report.photo.timestamp).toLocaleString()}</span>
+        <span style="color:${report.photo.gpsMatch ? 'var(--green)' : 'var(--yellow)'}">${report.photo.gpsMatch ? '✓ GPS matched' : '⚠ GPS unverified'}</span>
+      </div>
+    </div>` : '';
+
+  document.getElementById('modal-desc').insertAdjacentHTML('afterend', photoHtml);
+
+  document.getElementById('modal-timeline').innerHTML = report.timeline.map(t => `
+    <div class="timeline-item">
+      <div class="timeline-dot ${t.active ? 'active' : t.done ? 'done' : ''}"></div>
+      <div class="timeline-label" style="color:${t.done ? 'var(--green)' : t.active ? 'var(--accent)' : 'var(--muted)'}">${t.label}</div>
+      ${t.desc ? `<div class="timeline-desc">${t.desc}</div>` : ''}
+      ${t.date ? `<div class="timeline-date">${t.date}</div>` : ''}
+    </div>
+  `).join('');
+
+  renderComms(report.comms);
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function renderComms(comms) {
+  document.getElementById('modal-comms').innerHTML = comms.length ? comms.map(c => `
+    <div class="comm-msg ${c.isAuthority ? 'authority' : ''}">
+      <div class="comm-msg-header">
+        <span class="comm-author ${c.isAuthority ? '' : 'citizen'}">${c.isAuthority ? '🏛 ' : '👤 '}${c.author}</span>
+        <span class="comm-date">${c.date}</span>
+      </div>
+      <div class="comm-text">${c.text}</div>
+    </div>
+  `).join('') : '<div style="font-size:11px;color:var(--muted);padding:8px 0">No messages yet. Be the first to comment.</div>';
+}
+
+function sendComment() {
+  const input = document.getElementById('comm-input');
+  const text = input.value.trim();
+  if (!text || !activeReport) return;
+  
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+  activeReport.comms.push({ author: 'You (Citizen)', isAuthority: false, text, date: time });
+  renderComms(activeReport.comms);
+  input.value = '';
+  
+  // Simulate authority response
+  setTimeout(() => {
+    activeReport.comms.push({ 
+      author: 'Civic Department', isAuthority: true, 
+      text: 'Thank you for your update. We have logged your comment and our team will review it.', 
+      date: new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}) 
+    });
+    renderComms(activeReport.comms);
+  }, 2000);
+}
+
+function closeModal(event) {
+  if (event && event.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function classifyPriority(title, desc, category) {
+  const text = (title + ' ' + desc + ' ' + category).toLowerCase();
+  const critical = ['burst','collapse','explosion','fire','flood','gas leak','sewage overflow','raw sewage','electrical hazard','live wire','structural failure','sinkhole','danger','emergency','injury','injured','accident','blocked emergency','water main'];
+  const high = ['pothole','damage','broken','overflow','outage','power out','no water','leak','safety','hazard','risk','overflowing','illegal dump','graffiti','vandal','dead animal','fallen tree','obstruct','block'];
+  const medium = ['crack','worn','faded','missing','flickering','slow','smell','odour','noise','complaint','debris','litter'];
+  if (critical.some(k => text.includes(k))) return 'critical';
+  if (high.some(k => text.includes(k))) return 'high';
+  if (medium.some(k => text.includes(k))) return 'medium';
+  return 'low';
+}
+
+function submitReport() {
+  if (!verifiedUser) { showToast('⚠️ Please verify your identity first'); return; }
+
+  // GPS gate
+  if (!capturedGPS) {
+    document.getElementById('gps-result').style.display = 'block';
+    document.getElementById('gps-result').style.background = 'rgba(255,68,68,0.08)';
+    document.getElementById('gps-result').style.border = '1px solid rgba(255,68,68,0.3)';
+    document.getElementById('gps-result').style.color = 'var(--red)';
+    document.getElementById('gps-result').textContent = '⚠ You must capture your GPS location before submitting.';
+    showToast('📍 GPS location required');
+    document.getElementById('gps-box').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  // Photo gate: required for visual cats, AND always required for anonymous
+  const photoRequired = PHOTO_REQUIRED_CATS.has(selectedCat) || verifiedUser.anonymous;
+  if (photoRequired && !capturedPhoto) {
+    document.getElementById('photo-warning').style.display = 'block';
+    document.getElementById('photo-warning').textContent = verifiedUser.anonymous
+      ? '⚠ Anonymous reports require a photo for all categories.'
+      : '⚠ A photo of the issue is required for this category.';
+    document.getElementById('photo-drop').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('photo-drop').style.borderColor = 'var(--border)', 2000);
+    showToast('📷 Photo evidence required');
+    return;
+  }
+
+  const title = document.getElementById('issue-title').value.trim();
+  const location = document.getElementById('issue-location').value.trim();
+  const desc = document.getElementById('issue-desc').value.trim();
+
+  if (!title || !location) {
+    document.getElementById('issue-title').style.borderColor = 'var(--red)';
+    document.getElementById('issue-location').style.borderColor = 'var(--red)';
+    setTimeout(() => {
+      document.getElementById('issue-title').style.borderColor = '';
+      document.getElementById('issue-location').style.borderColor = '';
+    }, 2000);
+    return;
+  }
+
+  // Abuse check
+  const warnings = checkAbuseRisk(verifiedUser.contact, title, desc);
+  const abuseWarnEl = document.getElementById('abuse-warning');
+  if (warnings.length) {
+    abuseWarnEl.style.display = 'block';
+    abuseWarnEl.innerHTML = '⚠️ ' + warnings.join('<br>⚠️ ');
+    if (abuseLog[verifiedUser.contact]?.flagged) {
+      showToast('🚫 Account flagged — report held for review');
+      return;
+    }
+  } else {
+    abuseWarnEl.style.display = 'none';
+  }
+
+  // Update abuse log
+  const log = abuseLog[verifiedUser.contact] || { count: 0, lastTs: 0, flagged: false };
+  abuseLog[verifiedUser.contact] = { ...log, count: log.count + 1, lastTs: Date.now() };
+  verifiedUser.reportCount++;
+
+  const severity = classifyPriority(title, desc, selectedCat);
+  const isCritical = severity === 'critical';
+  // Anonymous reports go to review unless critical; verified flagged reports also go to review
+  const needsReview = (verifiedUser.anonymous && !isCritical) || (warnings.length > 0 && abuseLog[verifiedUser.contact]?.flagged);
+  const isFlagged = needsReview;
+  const reporterLabel = verifiedUser.anonymous ? 'Anonymous Citizen' : 'Verified Citizen';
+
+  const catIcons = {road:'🛣', sanitation:'🗑', utility:'⚡', water:'💧', safety:'🚨', other:'📌'};
+  const catClasses = {road:'cat-road', sanitation:'cat-sanitation', utility:'cat-utility', water:'cat-water', safety:'cat-safety', other:'cat-other'};
+
+  const newId = String(nextId++).padStart(4, '0');
+  const newReport = {
+    id: newId,
+    title,
+    category: selectedCat,
+    catIcon: catIcons[selectedCat],
+    catClass: catClasses[selectedCat],
+    priority: severity,
+    status: isFlagged ? 'flagged' : 'open',
+    location,
+    gps: { ...capturedGPS },
+    photo: capturedPhoto ? { filename: capturedPhoto.filename, sizeKB: capturedPhoto.sizeKB, timestamp: capturedPhoto.timestamp, dataUrl: capturedPhoto.dataUrl, gpsMatch: capturedPhoto.gpsMatch } : null,
+    votes: 0,
+    time: 'Just now',
+    reporter: reporterLabel,
+    verified: !verifiedUser.anonymous,
+    anonymous: verifiedUser.anonymous,
+    flagged: isFlagged,
+    description: desc || 'No additional description provided.',
+    timeline: isFlagged ? [
+      { label: 'Report Submitted', desc: `Via CivicPulse — ${reporterLabel}`, date: new Date().toLocaleString(), done: true },
+      { label: 'Held for Manual Review', desc: verifiedUser.anonymous ? 'Anonymous submission — a moderator will verify GPS + photo before publishing.' : 'Unusual activity detected. A moderator will verify this report.', date: '', active: true },
+      { label: 'Triage & Assignment', desc: '', date: '', done: false },
+      { label: 'Resolved', desc: '', date: '', done: false },
+    ] : [
+      { label: 'Report Submitted', desc: `Via CivicPulse — ${reporterLabel}`, date: new Date().toLocaleString(), done: true },
+      { label: 'AI Triage in Progress', desc: 'Auto-classifying and routing...', date: '', active: true },
+      { label: 'Department Assignment', desc: '', date: '', done: false },
+      { label: 'Resolved', desc: '', date: '', done: false },
+    ],
+    comms: []
+  };
+
+  reports.unshift(newReport);
+
+  // Clear form
+  document.getElementById('issue-title').value = '';
+  document.getElementById('issue-location').value = '';
+  document.getElementById('issue-desc').value = '';
+  capturedGPS = null;
+  capturedPhoto = null;
+  document.getElementById('gps-result').style.display = 'none';
+  document.getElementById('gps-box').innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">You must be physically at or near the issue location to report it.</div><button class="submit-btn" style="padding:8px 16px;font-size:10px;width:auto;display:inline-block" onclick="captureGPS()">📍 Capture My GPS Location</button>`;
+  if (PHOTO_REQUIRED_CATS.has(selectedCat)) clearPhoto();
+
+  // Update stats
+  if (!isFlagged) {
+    const openEl = document.getElementById('stat-open');
+    openEl.textContent = parseInt(openEl.textContent) + 1;
+  }
+  const totalEl = document.getElementById('stat-total');
+  totalEl.textContent = parseInt(totalEl.textContent) + 1;
+
+  renderReports();
+
+  if (isFlagged) {
+    showToast('⚠️ Report held — under review');
+  } else {
+    showToast(`🤖 AI classified as ${severity.toUpperCase()} priority`);
+    setTimeout(() => {
+      newReport.timeline[1].active = false;
+      newReport.timeline[1].done = true;
+      newReport.timeline[1].date = new Date().toLocaleString();
+      newReport.timeline[1].desc = `Auto-classified as ${severity.toUpperCase()}. Routing to relevant department.`;
+      newReport.timeline[2].active = true;
+      renderReports();
+    }, 3000);
+  }
+}
+
+function updateReportStatus(newStatus) {
+  if (!activeReport) return;
+  activeReport.status = newStatus;
+  if (newStatus === 'resolved') {
+    activeReport.timeline = activeReport.timeline.map(t => ({ ...t, done: true, active: false }));
+    activeReport.timeline[activeReport.timeline.length - 1].date = new Date().toLocaleString();
+    activeReport.timeline[activeReport.timeline.length - 1].desc = 'Issue successfully resolved.';
+    // Update open stat
+    const openEl = document.getElementById('stat-open');
+    const cur = parseInt(openEl.textContent);
+    if (cur > 0) openEl.textContent = cur - 1;
+    showToast('✓ Issue marked as Resolved');
+  } else {
+    showToast('🔧 Issue marked as In Progress');
+  }
+  // Re-render badge in modal
+  document.getElementById('modal-badges').querySelector('.status-badge').className = `status-badge status-${newStatus}`;
+  document.getElementById('modal-badges').querySelector('.status-badge').textContent = newStatus === 'resolved' ? 'Resolved' : 'In Progress';
+  renderReports();
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+function switchPage(page) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (page === 'report') {
+    document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
+  } else if (page === 'analytics') {
+    openAnalytics();
+  }
+}
+
+function openAnalytics() {
+  renderAnalytics();
+  document.getElementById('analytics-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAnalytics() {
+  document.getElementById('analytics-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.nav-btn').classList.add('active');
+}
+
+function renderAnalytics() {
+  const all = reports;
+  const total = all.length;
+  const resolved = all.filter(r => r.status === 'resolved').length;
+  const inProgress = all.filter(r => r.status === 'progress').length;
+  const open = all.filter(r => r.status === 'open' || r.status === 'flagged').length;
+  const rate = total ? Math.round((resolved / total) * 100) : 0;
+
+  document.getElementById('a-rate').textContent = rate + '%';
+  document.getElementById('a-resolved').textContent = resolved;
+  document.getElementById('a-progress').textContent = inProgress;
+  document.getElementById('a-open').textContent = open;
+
+  // Progress bar
+  const resolvedPct = total ? (resolved / total) * 100 : 0;
+  const progressPct = total ? (inProgress / total) * 100 : 0;
+  document.getElementById('progress-bar-resolved').style.width = resolvedPct + '%';
+  document.getElementById('progress-bar-progress').style.left = resolvedPct + '%';
+  document.getElementById('progress-bar-progress').style.width = progressPct + '%';
+  document.getElementById('progress-bar-label').textContent = total
+    ? `${rate}% resolved · ${Math.round(progressPct)}% in progress`
+    : 'No reports yet';
+
+  // Category data
+  const cats = ['road','sanitation','utility','water','safety','other'];
+  const catLabels = { road:'🛣 Roads', sanitation:'🗑 Sanitation', utility:'⚡ Utilities', water:'💧 Water', safety:'🚨 Safety', other:'📌 Other' };
+  const catColors = { road:'#ff6b35', sanitation:'#44ff88', utility:'#e8ff47', water:'#4ecdc4', safety:'#ff4444', other:'#6b6f7a' };
+
+  const catCounts = {};
+  const catResolved = {};
+  cats.forEach(c => { catCounts[c] = 0; catResolved[c] = 0; });
+  all.forEach(r => {
+    if (catCounts[r.category] !== undefined) {
+      catCounts[r.category]++;
+      if (r.status === 'resolved') catResolved[r.category]++;
+    }
+  });
+
+  // Category bars (all issues)
+  const maxCount = Math.max(...Object.values(catCounts), 1);
+  const catBarsEl = document.getElementById('category-bars');
+  if (total === 0) {
+    catBarsEl.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:16px 0;text-align:center">No reports yet — submit issues to see breakdown</div>';
+  } else {
+    catBarsEl.innerHTML = cats.map(c => {
+      const count = catCounts[c];
+      const pct = Math.round((count / maxCount) * 100);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
+          <span>${catLabels[c]}</span>
+          <span style="color:var(--muted)">${count} report${count !== 1 ? 's' : ''}</span>
+        </div>
+        <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)">
+          <div style="height:100%;width:${pct}%;background:${catColors[c]};border-radius:4px;transition:width 0.8s ease"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Resolved by category
+  const resolvedByCatEl = document.getElementById('resolved-by-cat');
+  const anyResolved = Object.values(catResolved).some(v => v > 0);
+  if (!anyResolved) {
+    resolvedByCatEl.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:16px 0;text-align:center">No resolved issues yet</div>';
+  } else {
+    const maxRes = Math.max(...Object.values(catResolved), 1);
+    resolvedByCatEl.innerHTML = cats.map(c => {
+      const res = catResolved[c];
+      const tot = catCounts[c];
+      const pct = Math.round((res / maxRes) * 100);
+      const resRate = tot ? Math.round((res / tot) * 100) : 0;
+      return `<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
+          <span>${catLabels[c]}</span>
+          <span style="color:var(--green)">${res} resolved <span style="color:var(--muted)">(${resRate}% of ${tot})</span></span>
+        </div>
+        <div style="height:10px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)">
+          <div style="height:100%;width:${pct}%;background:${catColors[c]};border-radius:4px;opacity:0.85;transition:width 0.8s ease"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Accountability scorecard
+  const scorecardEl = document.getElementById('scorecard');
+  const grades = cats.map(c => {
+    const tot = catCounts[c];
+    const res = catResolved[c];
+    const prog = all.filter(r => r.category === c && r.status === 'progress').length;
+    if (tot === 0) return { cat: c, grade: '—', color: 'var(--muted)', note: 'No reports' };
+    const score = tot ? ((res + prog * 0.5) / tot) * 100 : 0;
+    let grade, color, note;
+    if (score >= 80)      { grade = 'A'; color = 'var(--green)';  note = 'Excellent responsiveness'; }
+    else if (score >= 60) { grade = 'B'; color = 'var(--accent)'; note = 'Good — room to improve'; }
+    else if (score >= 40) { grade = 'C'; color = 'var(--yellow)'; note = 'Moderate — needs attention'; }
+    else if (score >= 20) { grade = 'D'; color = 'var(--accent2)';note = 'Poor — significant backlog'; }
+    else                  { grade = 'F'; color = 'var(--red)';    note = 'Critical — not responding'; }
+    return { cat: c, grade, color, note, tot, res };
+  });
+
+  scorecardEl.innerHTML = grades.map(g => `
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:${g.color};width:28px;text-align:center;flex-shrink:0">${g.grade}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:700">${catLabels[g.cat]}</div>
+        <div style="font-size:9px;color:var(--muted)">${g.note}${g.tot ? ` · ${g.res}/${g.tot} resolved` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// INIT
+renderReports();
+</script>
+</body>
+</html>
